@@ -1,124 +1,166 @@
 import pybase64
 import io
+import os
+import time
 from dotenv import load_dotenv
-
 import pymongo
 from pymongo import MongoClient
-import os 
-
 import streamlit as st
-import os
 from PIL import Image
 import PyPDF2 as pdf
 import google.generativeai as genai
-import time
-from database import x
 
 load_dotenv()
-
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-def get_gemini_response(input):
-    model = genai.GenerativeModel('gemini-pro')
-    response = model.generate_content(input)
+# --------------------------
+# Core Functionality (Unchanged)
+# --------------------------
+def get_gemini_response(input_text):
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    response = model.generate_content(input_text)
     return response.text
 
 def input_pdf_text(uploaded_file):
     reader = pdf.PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ''  # Ensure text is not None
-    return text
+    return "".join(page.extract_text() or '' for page in reader.pages)
 
-## ------- Streamlit app setup ---------
-st.set_page_config(page_title="ATSPro", page_icon="📑", layout = 'wide')
+# --------------------------
+# UI Configuration
+# --------------------------
+st.set_page_config(
+    page_title="GrowON",
+    page_icon="📑",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+# Load custom CSS
+with open("styles/main.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-with open( "styles/main.css" ) as css:
-    st.markdown( f'<style>{css.read()}</style>' , unsafe_allow_html= True)
-
-st.title("ATSPro: The ATS-Conquering Companion")
-st.subheader("Cross the ATS Hurdle: Unlock Your Career Potential with Precision and Insight")
-
-
-#Set BAckground Image
-def set_bg_image(image_file):
-    with open(image_file, "rb") as file:
-        # Use base64 to encode the image file
+# Background image with overlay
+def set_background(image_path):
+    with open(image_path, "rb") as file:
         encoded_image = pybase64.b64encode(file.read()).decode()
-
-    # Set the background using CSS styles
-    css_style = f"""
+    
+    background_style = f"""
     <style>
     .stApp {{
-        background-image: url("data:image/png;base64,{encoded_image}");
+        background: linear-gradient(
+            rgba(0, 0, 0, 0.6),
+            rgba(0, 0, 0, 0.6)
+        ), url("data:image/png;base64,{encoded_image}");
         background-size: cover;
         background-position: center;
+        background-attachment: fixed;
     }}
     </style>
     """
+    st.markdown(background_style, unsafe_allow_html=True)
 
-    st.markdown(css_style, unsafe_allow_html=True)
+set_background("bg.jpg")  # Set your background image
 
-set_bg_image("background.JPG")
+# --------------------------
+# Sidebar Configuration
+# --------------------------
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-header">
+        <h2>📥 Input Details</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    role = st.text_input("Job Role", placeholder="e.g., Marketing Manager")
+    jd = st.text_area("Job Description", height=200,
+                     placeholder="Paste full job description here...")
+    uploaded_file = st.file_uploader("Upload Resume (PDF)", type="pdf")
 
-#App Code
-st.write("""_**ATSPro**_ is your strategic ally in mastering the **Applicant Tracking System (ATS)** challenge, powered by the advanced capabilities of _**Google Gemini Pro**_. This ATS Expert System is crafted to refine and align your resume with precision, ensuring it resonates with both the ATS algorithms and human recruiters' expectations.
+# --------------------------
+# Main Content Area
+# --------------------------
+st.markdown("""
+<div class="main-header">
+    <h1>GrowON: ATS Optimization Suite</h1>
+    <h3>Cross the ATS Hurdle with AI-Powered Precision</h3>
+</div>
+""", unsafe_allow_html=True)
 
-Through a deep analysis of your resume against specific job descriptions, _**ATSPro**_ identifies key areas for enhancement, from keyword optimization to structural improvements, making your application ATS-friendly. Our unique feature set also includes generating custom interview questions and answers, tailored to your resume and the job you're targeting, ensuring you're well-prepared for both technical and HR evaluations.""")
+# Introduction
+st.markdown("""
+<div class="intro-card">
+    <p>🔍 Powered by Google Gemini Pro, GrowON provides:</p>
+    <ul>
+        <li>ATS Compliance Analysis</li>
+        <li>Keyword Optimization</li>
+        <li>Skills Gap Identification</li>
+        <li>Personalized Interview Prep</li>
+    </ul>
+    <div class="disclaimer">
+        ⚠️ Note: Always validate suggestions with human review
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-st.write("**Note:** _**ATSPro**_ can make mistakes. Consider checking important information.")
+# --------------------------
+# Analysis Tools
+# --------------------------
+st.markdown("### 🔍 Analysis Tools")
+button_cols = st.columns(5)
+with button_cols[0]:
+    submit1 = st.button("Resume Analysis", use_container_width=True)
+with button_cols[1]:
+    submit2 = st.button("Match Percentage", use_container_width=True)
+with button_cols[2]:
+    submit3 = st.button("Skill Development", use_container_width=True)
+with button_cols[3]:
+    submit4 = st.button("Customization Tips", use_container_width=True)
+with button_cols[4]:
+    submit5 = st.button("Interview Prep", use_container_width=True)
 
-# Initialize session state variables for button clicks
-if 'submit1_clicked' not in st.session_state:
-    st.session_state['submit1_clicked'] = False
-if 'submit2_clicked' not in st.session_state:
-    st.session_state['submit2_clicked'] = False
-if 'submit3_clicked' not in st.session_state:
-    st.session_state['submit3_clicked'] = False
-if 'submit4_clicked' not in st.session_state:
-    st.session_state['submit4_clicked'] = False
-if 'submit5_clicked' not in st.session_state:
-    st.session_state['submit5_clicked'] = False
+# --------------------------
+# Validation & Processing
+# --------------------------
+def validate_inputs():
+    errors = []
+    if not role.strip():
+        st.error("❗ Please specify a job role")
+        errors.append("role")
+    if not jd.strip():
+        st.error("❗ Please provide job description")
+        errors.append("jd")
+    if not uploaded_file:
+        st.error("❗ Please upload your resume")
+        errors.append("resume")
+    return len(errors) == 0
 
-# Define button click callbacks to set state
-def on_submit1_clicked():
-    st.session_state['submit1_clicked'] = True
+def create_response_card(title, content):
+    return f"""
+    <div class="response-card">
+        <h4>{title}</h4>
+        <div class="response-content">{content}</div>
+    </div>
+    """
 
-def on_submit2_clicked():
-    st.session_state['submit2_clicked'] = True
-
-def on_submit3_clicked():
-    st.session_state['submit3_clicked'] = True
-
-def on_submit4_clicked():
-    st.session_state['submit4_clicked'] = True
-
-def on_submit5_clicked():
-    st.session_state['submit5_clicked'] = True
-
-# Role input
-role = st.text_input("**What's the Job Role?**")
-# Job description and resume upload
-jd = st.text_area("**Paste the Job Description**")
-uploaded_file = st.file_uploader("**Upload Your Resume**", type="pdf", help="Please upload a pdf")
-
-col1, col2, col3, col4, col5 = st.columns(5)
-
-# Display buttons and check their state
-with col1:
-    submit1 = st.button("Tell Me About My Resume ", on_click=on_submit1_clicked,type="primary")
-with col2:
-    submit2 = st.button("Percentage(%) Match ", on_click=on_submit2_clicked,type="primary")
-with col3:
-    submit3 = st.button("How to Improve Skills", on_click=on_submit3_clicked,type="primary")
-with col4:
-    submit4 = st.button("Customization Tips", on_click=on_submit4_clicked,type="primary")
-with col5:
-    submit5 = st.button("Interview Prep Guide", on_click=on_submit5_clicked,type="primary")
+# Handle button actions
+def handle_analysis(prompt_template, title):
+    if validate_inputs():
+        text = input_pdf_text(uploaded_file)
+        with st.spinner('🔍 Analyzing documents...'):
+            try:
+                prompt = prompt_template.format(
+                    role=role,
+                    text=text,
+                    jd=jd
+                )
+                response = get_gemini_response(prompt)
+                st.markdown(create_response_card(title, response),
+                          unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error processing request: {str(e)}")
 
 # Process button clicks
-if submit1 and st.session_state['submit1_clicked']:
+if submit1:
     if len(role) > 0:
         if uploaded_file is not None:
             text = input_pdf_text(uploaded_file)
@@ -163,7 +205,7 @@ if submit1 and st.session_state['submit1_clicked']:
         st.error("Resume Not Uploaded.")
         
 
-if submit2 and st.session_state['submit2_clicked']:
+if submit2:
     if len(role) > 0:
         if uploaded_file is not None:
             text = input_pdf_text(uploaded_file)
@@ -211,7 +253,7 @@ if submit2 and st.session_state['submit2_clicked']:
         st.error("No job description provided.")
         st.error("Resume Not Uploaded.")
 
-if submit3 and st.session_state['submit3_clicked']:
+if submit3:
     if len(role) > 0:
         if uploaded_file is not None:
             text = input_pdf_text(uploaded_file)
@@ -254,7 +296,7 @@ if submit3 and st.session_state['submit3_clicked']:
         st.error("No job description provided.")
         st.error("Resume Not Uploaded.")
 
-if submit4 and st.session_state['submit4_clicked']:
+if submit4:
     if len(role) > 0:
         if uploaded_file is not None:
             text = input_pdf_text(uploaded_file)
@@ -297,7 +339,7 @@ if submit4 and st.session_state['submit4_clicked']:
         st.error("No job description provided.")
         st.error("Resume Not Uploaded.")
 
-if submit5 and st.session_state['submit5_clicked']:
+if submit5:
     if len(role) > 0:
         if uploaded_file is not None:
             text = input_pdf_text(uploaded_file)
@@ -354,3 +396,12 @@ if submit5 and st.session_state['submit5_clicked']:
         st.error("No Job Role Specified")
         st.error("No job description provided.")
         st.error("Resume Not Uploaded.")
+# --------------------------
+# Footer
+# --------------------------
+st.markdown("""
+<div class="footer">
+    <hr>
+    <p>Built with ❤️ by TE AI&DS B Students</p>
+</div>
+""", unsafe_allow_html=True)

@@ -1,7 +1,83 @@
-@import url('https://fonts.cdnfonts.com/css/adobe-garamond-pro-2');
+/* Hide default Streamlit elements */
+#MainMenu, footer, header[data-testid="stHeader"] { 
+    visibility: hidden !important;
+}
 
-* {font-family: 'Adobe Garamond Pro', sans-serif;}
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap');
 
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
+/* Global styles */
+* {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+}
+
+/* Main app background (example overlay + base64 image) */
+.stApp {
+    /* Replace 'your-base64-image' with your own base64-encoded background */
+    background: linear-gradient(
+        rgba(0, 0, 0, 0.6),
+        rgba(0, 0, 0, 0.6)
+    ), 
+    url("data:image/png;base64,your-base64-image");
+    background-size: cover;
+    background-position: center;
+}
+
+/* Transparent/Glass-like Sidebar */
+[data-testid="stSidebar"] {
+    /* Semi-transparent white, allowing the background image to show through */
+    background: rgba(255, 255, 255, 0.1) !important;
+    
+    /* Glassmorphism blur effect (supported in modern browsers) */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    
+    /* Subtle translucent border */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    
+    /* Spacing & layout */
+    padding: 2rem 1.5rem !important;
+    margin: 1rem;
+    min-width: 300px !important;
+}
+
+/* Sidebar text elements */
+[data-testid="stSidebar"] label, 
+[data-testid="stSidebar"] h1, 
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] h3 {
+    color: #ffffff !important;
+}
+
+/* Inputs in the sidebar (text, text area, file uploader) */
+[data-testid="stSidebar"] .stTextInput input,
+[data-testid="stSidebar"] .stTextArea textarea,
+[data-testid="stSidebar"] .stFileUploader {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border-radius: 4px;
+    padding: 8px 12px;
+}
+
+/* Main content headings */
+h1, h2, h3 {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* Buttons styling */
+.stButton > button {
+    background: linear-gradient(135deg, #2b5876, #4e4376) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
